@@ -2,9 +2,10 @@ import * as THREE from 'three'
 import { Loop } from '../core/loop.ts'
 import { IsoCamera } from '../systems/iso-camera.ts'
 import { Stage, type StageDef, type StageProp } from '../world/stage.ts'
+import { buildLodge, type Lodge } from '../world/lodge.ts'
 import { Player } from '../player/player.ts'
 import { Billboard } from '../sprites/billboard.ts'
-import { EXTERIOR, INTERIOR } from '../materials/palette.ts'
+import { EXTERIOR } from '../materials/palette.ts'
 import { CaseFile } from '../case/casefile.ts'
 import { Notebook } from '../case/notebook.ts'
 import { DialogueRunner } from '../dialogue/runner.ts'
@@ -24,63 +25,6 @@ interface GameUI {
   lookLine: HTMLDivElement
   hint: HTMLDivElement
   panelHost: HTMLDivElement
-}
-
-const WALK = { x0: -7, x1: 7, z0: 0.5, z1: 10.5 }
-
-function receptionStage(): StageDef {
-  const props: StageProp[] = []
-  props.push(
-    Stage.box('desk', {
-      x: -2.4, y: 0, z: 3.4, w: 3.4, h: 1.05, d: 1.1,
-      color: INTERIOR.timberDark,
-      description: 'The reception desk. A reservations ledger sits open, dusted with talc.',
-      examine: 'An empty ledger, a brass bell, a key rack. Room 1A\'s key is missing from its hook.',
-    }),
-  )
-  props.push(
-    Stage.box('parlour-door', {
-      x: 2.6, y: 0, z: 5.8, w: 0.25, h: 2.7, d: 1.6,
-      color: INTERIOR.nicotine,
-      description: 'The parlour door. Closed.',
-    }),
-  )
-  props.push(
-    Stage.box('stairs', {
-      x: -4.9, y: 0, z: 7.0, w: 1.6, h: 2.5, d: 1.2,
-      color: 0x6b5a4a,
-      description: 'The staircase to the first floor.',
-    }),
-  )
-  props.push(
-    Stage.box('bench', {
-      x: 4.4, y: 0, z: 3.2, w: 2.2, h: 0.5, d: 0.6,
-      color: 0x8a7c68,
-      description: 'A worn bench against the wall. Magazines fanned on it.',
-    }),
-  )
-  props.push(
-    Stage.box('phone', {
-      x: 4.4, y: 0.5, z: 3.2, w: 0.3, h: 0.25, d: 0.2,
-      color: 0x1b3a6b,
-      description: 'The pay phone. The handset smells of stale smoke.',
-    }),
-  )
-  return {
-    id: 'reception',
-    name: 'Reception',
-    title: 'THE PARADISE LODGE — Reception',
-    spawn: { x: 0, z: 9.5, facing: Math.PI },
-    floor: { x0: -7.5, x1: 7.5, z0: -1.5, z1: 11, color: INTERIOR.carpetBrown, texture: '/textures/carpet-brown.jpg', repeatX: 3, repeatY: 3 },
-    walls: [
-      { x0: -7.5, x1: 7.5, y0: 0, y1: 3.2, z0: -1.5, z1: -1.2, color: INTERIOR.nicotine },
-      { x0: -7.5, x1: -7.2, y0: 0, y1: 3.2, z0: -1.5, z1: 11, color: INTERIOR.nicotine },
-      { x0: 7.2, x1: 7.5, y0: 0, y1: 3.2, z0: -1.5, z1: 11, color: INTERIOR.nicotine },
-    ],
-    props,
-    walkBounds: WALK,
-    camera: { target: { x: 0, y: 0, z: 4 }, distance: 22 },
-  }
 }
 
 export class Game {
@@ -125,7 +69,7 @@ export class Game {
     this.scene.add(new THREE.AmbientLight(0xffffff, 0.35))
     this.scene.add(new THREE.HemisphereLight(0xfff4e0, 0x6e6255, 0.5))
 
-    this.iso = new IsoCamera(window.innerWidth / window.innerHeight, { distance: 17 })
+    this.iso = new IsoCamera(window.innerWidth / window.innerHeight, { distance: 22 })
     this.iso.setTarget(0, 0, 4)
 
     this.input = { keys: new Set(), mouseX: 0, mouseY: 0 }
@@ -135,20 +79,29 @@ export class Game {
     void new DialoguePanel(this.ui.panelHost, this.runner)
     this.notebook = new Notebook(this.ui.panelHost, this.caseFile)
 
-    this.stage = new Stage(receptionStage())
+    // Build the full procedural lodge (street, steps, facade, ground floor, stairs, first floor)
+    const lodge = buildLodge()
+    this.scene.add(lodge.group)
+
+    // Use the Stage class for interaction logic (hotspots, props) — build a stage from the lodge's collision/walk data
+    const stageDef = this.lodgeToStageDef(lodge)
+    this.stage = new Stage(stageDef)
     this.scene.add(this.stage.group)
 
     this.player = player
-    this.player.spawn(this.stage.spawn.x, this.stage.spawn.z, this.stage.spawn.facing)
-    this.player.setBounds(this.stage.walkBounds)
+    this.player.spawn(lodge.spawn.x, lodge.spawn.z, lodge.spawnYaw)
+    this.player.setBounds({ x0: -7.5, x1: 7.5, z0: -2, z1: 11 })
     this.scene.add(this.player.root)
 
     // Rosie behind the desk, facing the door. Talkable.
-    rosie.setPosition(-2.4, 0, 3.8)
-    rosie.facing = Math.PI
+    // facing 0 = +Z = the entrance side of THIS stage (the original repo's
+    // street was -Z; carrying its π over made her face the back wall and
+    // the view selector showed her profile at the default camera angle).
+    rosie.setPosition(-2.4, 0, 4.3)
+    rosie.facing = 0
     rosie.update(this.iso.yaw)
     this.scene.add(rosie.root)
-    const rosieHotspot = this.stage.addHotspot('rosie', -2.4, 1.0, 3.8, 1.6, 1.8, 1.6)
+    const rosieHotspot = this.stage.addHotspot('rosie', -2.4, 1.0, 4.3, 1.6, 1.8, 1.6)
     rosieHotspot.userData.dialogueId = 'rosie.reception'
     rosieHotspot.userData.description = 'Rosie Rourke, the manager. Cigarette smoke curls off her sleeve as she watches you.'
     this.npcBillboards.push(rosie)
@@ -305,6 +258,41 @@ export class Game {
       t.z + this.player.position.z * 0.35,
     )
     this.render()
+  }
+
+  private lodgeToStageDef(lodge: Lodge): StageDef {
+    let x0 = -7.5, x1 = 7.5, z0 = -2, z1 = 11
+
+    // Build walkable bounds from floors
+    for (const floor of lodge.floors) {
+      x0 = Math.min(x0, floor.box.min.x)
+      x1 = Math.max(x1, floor.box.max.x)
+      z0 = Math.min(z0, floor.box.min.z)
+      z1 = Math.max(z1, floor.box.max.z)
+    }
+
+    const props: StageProp[] = [
+          { id: 'desk', object: lodge.props.desk, description: 'The reception desk.', examine: "An empty ledger, a brass bell, a key rack. Room 1A's key is missing." },
+          { id: 'stairs', object: lodge.props.stairs, description: 'The staircase to the first floor.' },
+          { id: 'parlour-table', object: lodge.props.parlourTable, description: 'A table in the parlour.' },
+          { id: 'diary', object: lodge.props.diary, description: 'An open diary.', examine: 'Pages yellowed, entries cramped.', evidenceId: 'diary' },
+          { id: 'tv', object: lodge.props.television, description: 'An old CRT television.' },
+          { id: 'lamp', object: lodge.props.standardLamp, description: 'A standard lamp.' },
+          { id: 'phone', object: lodge.props.phone, description: 'The pay phone. The handset smells of stale smoke.' },
+          { id: 'commodore', object: lodge.props.commodore, description: 'A beige 1993 Holden Commodore, unmarked.' },
+        ]
+
+    return {
+      id: 'lodge',
+      name: 'Lodge',
+      title: 'THE PARADISE LODGE',
+      spawn: { x: lodge.spawn.x, z: lodge.spawn.z, facing: lodge.spawnYaw },
+      floor: { x0, x1, z0, z1, texture: '/textures/carpet-brown.jpg', repeatX: 3, repeatY: 3 },
+      walls: [],
+      props,
+      walkBounds: { x0, x1, z0, z1 },
+      camera: { target: { x: 0, y: 0, z: 4 }, distance: 22 },
+    }
   }
 
   private render(): void {
