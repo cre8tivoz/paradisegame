@@ -233,9 +233,46 @@ export function wall(
   y1: number,
   z0: number,
   z1: number,
+  normal: Vector3,
+  storey: 0 | 1,
 ): Mesh {
   const mesh = slab(parent, material, x0, x1, y0, y1, z0, z1)
   solids.push(aabb(x0, x1, y0, y1, z0, z1))
+  mesh.userData = { kind: 'wall', normal: normal.clone(), storey }
+  return mesh
+}
+
+/** A ceiling slab — always hidden in play, visible only for establishing shot. */
+export function ceiling(
+  parent: Object3D,
+  material: MeshStandardMaterial,
+  x0: number,
+  x1: number,
+  y0: number,
+  y1: number,
+  z0: number,
+  z1: number,
+  storey: 0 | 1,
+): Mesh {
+  const mesh = slab(parent, material, x0, x1, y0, y1, z0, z1)
+  mesh.userData = { kind: 'ceiling', normal: new Vector3(0, -1, 0), storey }
+  return mesh
+}
+
+/** A floor slab — visible, tagged for storey culling. */
+export function floor(
+  parent: Object3D,
+  material: MeshStandardMaterial,
+  x0: number,
+  x1: number,
+  y0: number,
+  y1: number,
+  z0: number,
+  z1: number,
+  storey: 0 | 1,
+): Mesh {
+  const mesh = slab(parent, material, x0, x1, y0, y1, z0, z1)
+  mesh.userData = { kind: 'floor', normal: new Vector3(0, 1, 0), storey }
   return mesh
 }
 
@@ -304,12 +341,12 @@ export function elevation(
     let cursor = y0
     for (const band of bands) {
       if (band.y0 > cursor) {
-        wall(parent, solids, material, left, right, cursor, band.y0, z0, z1)
+        wall(parent, solids, material, left, right, cursor, band.y0, z0, z1, new Vector3(0, 0, 1), 0)
       }
       cursor = Math.max(cursor, band.y1)
     }
     if (cursor < y1) {
-      wall(parent, solids, material, left, right, cursor, y1, z0, z1)
+      wall(parent, solids, material, left, right, cursor, y1, z0, z1, new Vector3(0, 0, 1), 0)
     }
   }
 }

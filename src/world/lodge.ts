@@ -13,7 +13,7 @@ import {
 import { EXTERIOR, INTERIOR } from '../materials/palette.ts'
 import { neonPlate, tiled } from '../materials/textures.ts'
 import type { WalkableRegion } from './collision.ts'
-import { aabb, elevation, mat, raked, slab, unlit, walk, wall } from './kit.ts'
+import { aabb, ceiling, elevation, floor, mat, raked, slab, unlit, walk, wall } from './kit.ts'
 
 /**
  * The Paradise Lodge: the approach and the ground floor, plus the staircase and
@@ -192,8 +192,8 @@ export function buildLodge(): Lodge {
     walk(floors, 'marble', -1.65, 1.65, z0, z1, top)
   }
   // Cheek walls either side, so the flight reads as a flight.
-  wall(group, solids, marble, -2.05, -1.68, PATH - 0.1, GROUND + 0.55, -1.75, FRONT - 0.35)
-  wall(group, solids, marble, 1.68, 2.05, PATH - 0.1, GROUND + 0.55, -1.75, FRONT - 0.35)
+  wall(group, solids, marble, -2.05, -1.68, PATH - 0.1, GROUND + 0.55, -1.75, FRONT - 0.35, new Vector3(1, 0, 0), 0)
+  wall(group, solids, marble, 1.68, 2.05, PATH - 0.1, GROUND + 0.55, -1.75, FRONT - 0.35, new Vector3(-1, 0, 0), 0)
 
   // === Police tape ===
   // Two halves, each parented to a pivot at its outer post so the cold open
@@ -324,11 +324,18 @@ export function buildLodge(): Lodge {
 
   // Sides and back. The right side stops short of 1A's sash: that opening is in
   // room 1A's own wall, and doubling it here would brick the window up.
-  wall(group, solids, render, LEFT - 0.25, LEFT, PATH - 0.4, PARAPET, frontZ0, BACK + 0.25)
-  wall(group, solids, render, RIGHT, RIGHT + 0.25, PATH - 0.4, FIRST, frontZ0, BACK + 0.25)
-  wall(group, solids, render, RIGHT, RIGHT + 0.25, FIRST, PARAPET, STAIR_Z0, BACK + 0.25)
-  wall(group, solids, render, RIGHT, RIGHT + 0.25, CEIL_FIRST, PARAPET, frontZ0, STAIR_Z0)
-  wall(group, solids, render, LEFT - 0.25, RIGHT + 0.25, PATH - 0.4, PARAPET, BACK, BACK + 0.25)
+  // LEFT wall: split into ground (0) and first (1) storeys
+  wall(group, solids, render, LEFT - 0.25, LEFT, PATH - 0.4, FIRST, frontZ0, BACK + 0.25, new Vector3(1, 0, 0), 0)
+  wall(group, solids, render, LEFT - 0.25, LEFT, FIRST, PARAPET, frontZ0, BACK + 0.25, new Vector3(1, 0, 0), 1)
+  // RIGHT wall lower: ground storey
+  wall(group, solids, render, RIGHT, RIGHT + 0.25, PATH - 0.4, FIRST, frontZ0, BACK + 0.25, new Vector3(-1, 0, 0), 0)
+  // RIGHT wall stair side: first storey
+  wall(group, solids, render, RIGHT, RIGHT + 0.25, FIRST, PARAPET, STAIR_Z0, BACK + 0.25, new Vector3(-1, 0, 0), 1)
+  // RIGHT wall front side: first storey
+  wall(group, solids, render, RIGHT, RIGHT + 0.25, CEIL_FIRST, PARAPET, frontZ0, STAIR_Z0, new Vector3(-1, 0, 0), 1)
+  // BACK wall: split into ground (0) and first (1)
+  wall(group, solids, render, LEFT - 0.25, RIGHT + 0.25, PATH - 0.4, FIRST, BACK, BACK + 0.25, new Vector3(0, 0, 1), 0)
+  wall(group, solids, render, LEFT - 0.25, RIGHT + 0.25, FIRST, PARAPET, BACK, BACK + 0.25, new Vector3(0, 0, 1), 1)
 
   /*
    * Rear elevation. Applied windows, not cut.
@@ -353,7 +360,7 @@ export function buildLodge(): Lodge {
 
   // Roof lid. Has to cast, or the sun comes straight through it and lights the
   // first-floor hall from above in a slab that reads as a render fault.
-  slab(group, render, LEFT - 0.25, RIGHT + 0.25, PARAPET - 0.2, PARAPET, frontZ0, BACK + 0.25)
+  ceiling(group, render, LEFT - 0.25, RIGHT + 0.25, PARAPET - 0.2, PARAPET, frontZ0, BACK + 0.25, 1)
 
   // === Neon ===
   // Two lines over the entrance. Unlit, because a tube is a light source, not a
@@ -394,33 +401,34 @@ export function buildLodge(): Lodge {
 
   const interiorStart = group.children.length
 
-  slab(group, carpet, LEFT, RIGHT, GROUND - 0.1, GROUND, FRONT, BACK).receiveShadow = true
+  floor(group, carpet, LEFT, RIGHT, GROUND - 0.1, GROUND, FRONT, BACK, 0).receiveShadow = true
   walk(floors, 'carpet', HALL_X0, HALL_X1, FRONT - 0.2, STAIR_Z0 + 0.05, GROUND)
   walk(floors, 'carpet', STAIR_EDGE - 0.05, HALL_X1, STAIR_Z0 + 0.05, BACK, GROUND)
   walk(floors, 'carpet', LEFT, HALL_X0 + 0.15, FRONT, ROOM_BACK, GROUND)
   walk(floors, 'floorboard', HALL_X1 - 0.15, RIGHT, FRONT, ROOM_BACK, GROUND)
 
   // Reception is boards, not runner.
-  slab(group, timber, HALL_X1, RIGHT, GROUND - 0.09, GROUND + 0.005, FRONT, ROOM_BACK)
+  floor(group, timber, HALL_X1, RIGHT, GROUND - 0.09, GROUND + 0.005, FRONT, ROOM_BACK, 0)
 
   // Hall walls, one opening each into the parlour and reception.
   for (const side of [-1, 1] as const) {
     const x1 = side < 0 ? HALL_X0 + INT : HALL_X1
     const x0 = x1 - INT
-    wall(group, solids, nicotine, x0, x1, GROUND, CEIL_GROUND, FRONT - 0.2, 1.9)
-    wall(group, solids, nicotine, x0, x1, GROUND, CEIL_GROUND, 1.9 + OPENING_W, ROOM_BACK + INT)
-    wall(group, solids, nicotine, x0, x1, DOOR_H, CEIL_GROUND, 1.9, 1.9 + OPENING_W)
+    // Ground storey hall walls
+    wall(group, solids, nicotine, x0, x1, GROUND, CEIL_GROUND, FRONT - 0.2, 1.9, new Vector3(-side, 0, 0), 0)
+    wall(group, solids, nicotine, x0, x1, GROUND, CEIL_GROUND, 1.9 + OPENING_W, ROOM_BACK + INT, new Vector3(-side, 0, 0), 0)
+    wall(group, solids, nicotine, x0, x1, DOOR_H, CEIL_GROUND, 1.9, 1.9 + OPENING_W, new Vector3(-side, 0, 0), 0)
     // Architrave, so an opening reads as a doorway and not a missing wall.
     slab(group, timber, x0 - 0.02, x1 + 0.02, DOOR_H, DOOR_H + 0.09, 1.86, 1.94 + OPENING_W)
   }
 
   // Backs of the parlour and reception.
-  wall(group, solids, nicotine, LEFT, HALL_X0 + INT, GROUND, CEIL_GROUND, ROOM_BACK, ROOM_BACK + INT)
-  wall(group, solids, nicotine, HALL_X1 - INT, RIGHT, GROUND, CEIL_GROUND, ROOM_BACK, ROOM_BACK + INT)
+  wall(group, solids, nicotine, LEFT, HALL_X0 + INT, GROUND, CEIL_GROUND, ROOM_BACK, ROOM_BACK + INT, new Vector3(0, 0, 1), 0)
+  wall(group, solids, nicotine, HALL_X1 - INT, RIGHT, GROUND, CEIL_GROUND, ROOM_BACK, ROOM_BACK + INT, new Vector3(0, 0, -1), 0)
 
   // Ground-floor ceiling over the rooms and the front of the hall. Casts, for
   // the same reason the roof does.
-  slab(group, nicotine, LEFT, RIGHT, CEIL_GROUND, CEIL_GROUND + 0.09, FRONT, ROOM_BACK + INT)
+  ceiling(group, nicotine, LEFT, RIGHT, CEIL_GROUND, CEIL_GROUND + 0.09, FRONT, ROOM_BACK + INT, 0)
 
   // Skirting round the hall, and the picture rail the nicotine stops at.
   for (const x of [HALL_X0 + INT + 0.01, HALL_X1 - INT - 0.01]) {
@@ -508,9 +516,9 @@ export function buildLodge(): Lodge {
 
   // Hall walls. The right-hand one only runs behind 1A; 1A's own wall carries
   // the doorway in front of it.
-  wall(group, solids, nicotine, STAIR_EDGE - 0.16, STAIR_EDGE - 0.02, FIRST, CEIL_FIRST, FRONT, STAIR_Z0)
-  wall(group, solids, nicotine, HALL_X1 - INT, HALL_X1, FIRST, CEIL_FIRST, STAIR_Z0, BACK)
-  wall(group, solids, nicotine, STAIR_X0 - 0.05, STAIR_X0 + 0.09, FIRST, CEIL_FIRST, STAIR_Z1 - 0.06, BACK)
+  wall(group, solids, nicotine, STAIR_EDGE - 0.16, STAIR_EDGE - 0.02, FIRST, CEIL_FIRST, FRONT, STAIR_Z0, new Vector3(1, 0, 0), 1)
+  wall(group, solids, nicotine, HALL_X1 - INT, HALL_X1, FIRST, CEIL_FIRST, STAIR_Z0, BACK, new Vector3(0, 0, -1), 1)
+  wall(group, solids, nicotine, STAIR_X0 - 0.05, STAIR_X0 + 0.09, FIRST, CEIL_FIRST, STAIR_Z1 - 0.06, BACK, new Vector3(-1, 0, 0), 1)
 
   /*
    * Banister along the open stairwell on the first-floor hall. Waist height,
@@ -536,7 +544,7 @@ export function buildLodge(): Lodge {
   }
 
   // First-floor ceiling.
-  slab(group, nicotine, STAIR_X0 - 0.05, HALL_X1, CEIL_FIRST, CEIL_FIRST + 0.09, FRONT, BACK)
+  ceiling(group, nicotine, STAIR_X0 - 0.05, HALL_X1, CEIL_FIRST, CEIL_FIRST + 0.09, FRONT, BACK, 1)
 
   // === Reception ===
   // Desk sits clear of the hall opening. A previous span started at x 2.32,

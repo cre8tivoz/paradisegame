@@ -1,4 +1,4 @@
-import { Box3, Group, Object3D } from 'three'
+import { Box3, Group, Object3D, Vector3 } from 'three'
 import { EXTERIOR, INTERIOR } from '../materials/palette.ts'
 import type { WalkableRegion } from './collision.ts'
 import { aabb, mat, raked, slab, walk, wall } from './kit.ts'
@@ -122,10 +122,10 @@ export function buildYard(): Yard {
   const shedFront = GRASS + 2.15
   const shedBack = GRASS + 2.45
 
-  wall(shed, solids, corrugate, shedX0, shedX0 + 0.06, GRASS, shedFront, shedZ0, shedZ1)
-  wall(shed, solids, corrugate, shedX1 - 0.06, shedX1, GRASS, shedBack, shedZ0, shedZ1)
-  wall(shed, solids, corrugate, shedX0, shedX1, GRASS, shedFront, shedZ0, shedZ0 + 0.06)
-  wall(shed, solids, corrugate, shedX0, shedX1, GRASS, shedBack, shedZ1 - 0.06, shedZ1)
+  wall(shed, solids, corrugate, shedX0, shedX0 + 0.06, GRASS, shedFront, shedZ0, shedZ1, new Vector3(1, 0, 0), 0)
+  wall(shed, solids, corrugate, shedX1 - 0.06, shedX1, GRASS, shedBack, shedZ0, shedZ1, new Vector3(-1, 0, 0), 0)
+  wall(shed, solids, corrugate, shedX0, shedX1, GRASS, shedFront, shedZ0, shedZ0 + 0.06, new Vector3(0, 0, 1), 0)
+  wall(shed, solids, corrugate, shedX0, shedX1, GRASS, shedBack, shedZ1 - 0.06, shedZ1, new Vector3(0, 0, -1), 0)
   // Lean-to roof, falling toward the stairs.
   const shedRoof = raked(shed, rust, shedX1 - shedX0 + 0.3, 0.08, shedZ1 - shedZ0 + 0.3)
   shedRoof.position.set(

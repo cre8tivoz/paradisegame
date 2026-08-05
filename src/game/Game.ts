@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { Loop } from '../core/loop.ts'
 import { IsoCamera } from '../systems/iso-camera.ts'
+import { Cutaway } from '../systems/cutaway.ts'
 import { Stage, type StageDef, type StageProp } from '../world/stage.ts'
 import { buildLodge, type Lodge } from '../world/lodge.ts'
 import { Player } from '../player/player.ts'
@@ -43,6 +44,7 @@ export class Game {
   private readonly raycaster = new THREE.Raycaster()
   private readonly groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
   private readonly npcBillboards: Billboard[] = []
+  private readonly cutaway: Cutaway
 
   constructor(player: Player, rosie: Billboard) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -82,6 +84,9 @@ export class Game {
     // Build the full procedural lodge (street, steps, facade, ground floor, stairs, first floor)
     const lodge = buildLodge()
     this.scene.add(lodge.group)
+
+    // Cutaway system: walls facing camera, ceilings always hidden, storey culling
+    this.cutaway = new Cutaway(this.iso.camera, lodge.group)
 
     // Use the Stage class for interaction logic (hotspots, props) — build a stage from the lodge's collision/walk data
     const stageDef = this.lodgeToStageDef(lodge)
@@ -251,6 +256,8 @@ export class Game {
     for (const npc of this.npcBillboards) {
       npc.update(this.iso.yaw)
     }
+    // Cutaway: hide camera-facing walls, ceilings, and storey-above geometry
+    this.cutaway.update(this.player.position)
     const t = this.stage.cameraTarget
     this.iso.setTarget(
       t.x + this.player.position.x * 0.35,
