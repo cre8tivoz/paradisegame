@@ -16,8 +16,7 @@ export class Cutaway {
   private readonly ceilings: CutawayMesh[] = []
   private readonly floorMeshes: CutawayMesh[] = []
   private currentStorey = 0
-  private lastAzimuth: number | null = null
-  private lastPolar: number | null = null
+  private lastCamPos = new Vector3(Infinity, 0, 0)
 
   constructor(camera: Camera, root: Object3D) {
     this.camera = camera
@@ -57,14 +56,12 @@ export class Cutaway {
     if (newStorey !== this.currentStorey) {
       this.currentStorey = newStorey
       this.applyStoreyCulling()
+      this.updateWallVisibility()
     }
 
-    // 2. Update wall visibility on camera azimuth/polar change (cheaper than per-frame dot)
-    const azimuth = (this.camera as any).cfg?.azimuth ?? (this.camera as any).azimuth
-    const polar = (this.camera as any).cfg?.polar ?? (this.camera as any).polar
-    if (azimuth !== this.lastAzimuth || polar !== this.lastPolar) {
-      this.lastAzimuth = azimuth
-      this.lastPolar = polar
+    // 2. Update wall visibility when camera position changes
+    if (this.camera.position.distanceToSquared(this.lastCamPos) > 0.0001) {
+      this.lastCamPos.copy(this.camera.position)
       this.updateWallVisibility()
     }
   }
@@ -73,24 +70,12 @@ export class Cutaway {
   private applyStoreyCulling(): void {
     const targetStorey = this.currentStorey
 
-    // Walls: hide walls on the storey ABOVE Miller
-    for (const w of this.walls) {
-      const storey = w.userData.storey
-      if (storey === targetStorey + 1) {
-        w.visible = false
-      } else if (storey === targetStorey) {
-        // Re-evaluate camera-facing for current storey
-        this.updateWallVisibility()
-      }
-    }
-
     // Floors: hide floor slab of storey ABOVE Miller
     for (const f of this.floorMeshes) {
       f.visible = f.userData.storey !== targetStorey + 1
     }
 
     // Props on storey above: traverse and hide
-    // We'll catch them via the wall/storey sweep since props are children of lodge
     this.root.traverse((obj) => {
       const mesh = obj as Mesh
       if (!mesh.isMesh) return
@@ -105,13 +90,14 @@ export class Cutaway {
 
   /** Show only walls whose outward normal points AWAY from the camera. */
   private updateWallVisibility(): void {
-    const camPos = this.camera.position.clone()
     for (const w of this.walls) {
-      // Only evaluate walls on Miller's current storey
-      if (w.userData.storey !== this.currentStorey) continue
-      const toCam = camPos.clone().sub(w.position).normalize()
+      // Storey above Miller: always hidden
+      if (w.userData.storey === this.currentStorey + 1) {
+        w.visible = false
+        continue
+      }
+      const toCam = this.camera.position.clone().sub(w.position).normalize()
       const dot = toCam.dot(w.userData.normal)
-      // dot > 0 means normal points toward camera = wall is between camera and room
       w.visible = dot < 0.1
     }
   }
