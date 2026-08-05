@@ -55,6 +55,7 @@ export class Game {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping
     this.renderer.toneMappingExposure = 1.05
+    this.renderer.domElement.id = 'game-canvas'
     document.body.appendChild(this.renderer.domElement)
 
     this.scene.background = new THREE.Color(EXTERIOR.sky)
@@ -304,6 +305,30 @@ export class Game {
 
   private render(): void {
     this.renderer.render(this.scene, this.iso.camera)
+    ;(window as unknown as { __THREE_GAME_DIAGNOSTICS__?: any }).__THREE_GAME_DIAGNOSTICS__ = {
+      frame: (performance.now() / 16.67) | 0,
+      elapsed: performance.now(),
+      score: 0,
+      targetScore: 0,
+      complete: false,
+      player: {
+        position: { x: this.player.position.x, y: this.player.position.y, z: this.player.position.z },
+        speed: 0,
+      },
+      renderer: {
+        calls: this.renderer.info.render.calls,
+        triangles: this.renderer.info.render.triangles,
+        geometries: this.renderer.info.memory.geometries,
+        textures: this.renderer.info.memory.textures,
+      },
+      canvas: {
+        clientWidth: this.renderer.domElement.clientWidth,
+        clientHeight: this.renderer.domElement.clientHeight,
+        width: this.renderer.domElement.width,
+        height: this.renderer.domElement.height,
+        dpr: window.devicePixelRatio,
+      },
+    }
   }
 
   /** Dev hook: project a world point to screen coords for click testing. */

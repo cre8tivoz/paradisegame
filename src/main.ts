@@ -14,6 +14,10 @@ async function boot(): Promise<void> {
   ;(window as unknown as { __lodge?: unknown }).__lodge = {
     project: (x: number, y: number, z: number) => game.debugProject(x, y, z),
   }
+  // Expose for Playwright test inspection
+  ;(window as unknown as { __GAME__?: any }).__GAME__ = game
+  ;(window as unknown as { __GAME_SCENE__?: any }).__GAME_SCENE__ = game['scene']
+  ;(window as unknown as { __GAME_CAMERA__?: any }).__GAME_CAMERA__ = game['iso'].camera
 }
 
 void boot().catch((err) => {
