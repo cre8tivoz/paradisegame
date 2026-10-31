@@ -44,44 +44,72 @@ async function sampleCanvas(page: import('@playwright/test').Page): Promise<Canv
   };
 }
 
+type WindowWithLodge = Window & {
+  __lodge?: { project: (x: number, y: number, z: number) => { x: number; y: number } };
+};
+
+/** Click-to-move via the same floor pick the game uses (WASD is not wired). */
+async function clickToMove(
+  page: import('@playwright/test').Page,
+  x: number,
+  y: number,
+  z: number,
+): Promise<void> {
+  await page.evaluate(
+    ({ x, y, z }) => {
+      const canvas = document.querySelector('#game-canvas');
+      const win = window as WindowWithLodge;
+      if (!canvas || !win.__lodge) return;
+      const p = win.__lodge.project(x, y, z);
+      canvas.dispatchEvent(
+        new PointerEvent('pointerdown', { clientX: p.x, clientY: p.y, bubbles: true }),
+      );
+      window.dispatchEvent(
+        new PointerEvent('pointerup', { clientX: p.x, clientY: p.y, bubbles: true }),
+      );
+      canvas.dispatchEvent(
+        new MouseEvent('click', { clientX: p.x, clientY: p.y, bubbles: true }),
+      );
+    },
+    { x, y, z },
+  );
+}
+
 test('renders a nonblank interactive game canvas', async ({ page }, testInfo) => {
   const consoleErrors: string[] = [];
   const pageErrors: string[] = [];
   page.on('console', (message) => {
-    if (message.type() === 'error') consoleErrors.push(message.text());
+    if (message.type() !== 'error') return;
+    const text = message.text();
+    // Browsers auto-request /favicon.ico; we ship favicon.svg instead.
+    if (text.includes('favicon.ico')) return;
+    consoleErrors.push(text);
   });
   page.on('pageerror', (error) => pageErrors.push(error.message));
 
   await page.goto('/');
   await expect(page.locator('#game-canvas')).toBeVisible();
   await page.waitForFunction(() => (window.__THREE_GAME_DIAGNOSTICS__?.frame ?? 0) > 10);
+  await page.waitForFunction(() => Boolean((window as WindowWithLodge).__lodge));
 
   const sample = await sampleCanvas(page);
   expect(sample, JSON.stringify(sample)).toMatchObject({ ok: true });
 
-  const before = await page.evaluate(() => window.__THREE_GAME_DIAGNOSTICS__?.player.position.z ?? 0);
+  const before = await page.evaluate(
+    () => window.__THREE_GAME_DIAGNOSTICS__?.player.position ?? { x: 0, y: 0, z: 0 },
+  );
 
-  if (testInfo.project.name.includes('mobile')) {
-    const stick = page.locator('#touch-stick');
-    await expect(stick).toBeVisible();
-    const box = await stick.boundingBox();
-    expect(box).not.toBeNull();
-    if (box) {
-      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-      await page.mouse.down();
-      await page.mouse.move(box.x + box.width / 2, box.y + box.height * 0.05, { steps: 6 });
-      await page.waitForTimeout(450);
-      await page.mouse.up();
-    }
-  } else {
-    await page.keyboard.down('KeyW');
-    await page.waitForTimeout(450);
-    await page.keyboard.up('KeyW');
-  }
+  // Walk toward lodge interior (increasing z) — same path cutaway tests use.
+  await clickToMove(page, before.x, 0, before.z + 2.5);
 
   await expect
-    .poll(async () => page.evaluate(() => window.__THREE_GAME_DIAGNOSTICS__?.player.position.z ?? 0))
-    .toBeLessThan(before - 0.3);
+    .poll(async () => {
+      const pos = await page.evaluate(
+        () => window.__THREE_GAME_DIAGNOSTICS__?.player.position ?? { x: 0, y: 0, z: 0 },
+      );
+      return Math.hypot(pos.x - before.x, pos.z - before.z);
+    })
+    .toBeGreaterThan(0.3);
 
   const screenshot = await page.screenshot({ fullPage: true });
   await testInfo.attach(`${testInfo.project.name}-game`, {

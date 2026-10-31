@@ -95,11 +95,13 @@ export function texture(name: DocTexture): Texture {
  */
 export function tiled(name: TileTexture, repeatX: number, repeatY: number): Texture {
   const tex = load(`/textures/${name}.${TILE_EXT[name]}`).clone()
-  tex.needsUpdate = true
+  // Do not set needsUpdate before the async image exists — that spams
+  // "Texture marked for update but no image data found" every frame.
   tex.wrapS = RepeatWrapping
   tex.wrapT = RepeatWrapping
   tex.repeat.set(repeatX, repeatY)
   tex.anisotropy = 8
+  if (tex.image) tex.needsUpdate = true
   return tex
 }
 
@@ -111,10 +113,10 @@ export function tiled(name: TileTexture, repeatX: number, repeatY: number): Text
  */
 export function neonPlate(name: NeonTexture = 'neon-sign'): Texture {
   const tex = load(`/textures/${name}.png`).clone()
-  tex.needsUpdate = true
   tex.wrapS = ClampToEdgeWrapping
   tex.wrapT = ClampToEdgeWrapping
   tex.anisotropy = 4
+  if (tex.image) tex.needsUpdate = true
   return tex
 }
 
@@ -127,10 +129,10 @@ export function neonPlate(name: NeonTexture = 'neon-sign'): Texture {
 export function windowed(name: DocTexture): Texture {
   const [x0, y0, x1, y1] = WINDOWS[name]
   const tex = texture(name).clone()
-  tex.needsUpdate = true
   tex.wrapS = ClampToEdgeWrapping
   tex.wrapT = ClampToEdgeWrapping
   tex.repeat.set(x1 - x0, y1 - y0)
   tex.offset.set(x0, 1 - y1)
+  if (tex.image) tex.needsUpdate = true
   return tex
 }
