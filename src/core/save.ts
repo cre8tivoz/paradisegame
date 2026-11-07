@@ -37,7 +37,13 @@ export class Save {
   }
 
   write(data: SaveData): void {
-    localStorage.setItem(KEY, JSON.stringify(data))
+    // Storage can be blocked or full (private browsing, quota). A failed save
+    // must not stop the scene from finishing.
+    try {
+      localStorage.setItem(KEY, JSON.stringify(data))
+    } catch {
+      // Nothing to do: the run carries on without a save.
+    }
   }
 
   /** Mark a scene finished and persist the current case file. */
@@ -56,7 +62,11 @@ export class Save {
   }
 
   clear(): void {
-    localStorage.removeItem(KEY)
+    try {
+      localStorage.removeItem(KEY)
+    } catch {
+      // Storage unavailable; nothing stored to clear.
+    }
   }
 }
 
