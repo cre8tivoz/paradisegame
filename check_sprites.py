@@ -1,7 +1,7 @@
 from PIL import Image
 import os
 
-im = Image.open('public/sprites/rosie-front.png')
+im = Image.open('public/sprites/rosie-front.webp')
 print('rosie-front:', im.size, im.mode)
 px = im.convert('RGBA')
 data = list(px.getdata())
@@ -11,7 +11,7 @@ print('opaque px: %d/%d = %.1f%%' % (opaque, len(data), opaque/len(data)*100))
 # Verify every sprite has content and reasonable alpha coverage
 print('\n--- all sprites ---')
 for fn in sorted(os.listdir('public/sprites')):
-    if not fn.endswith('.png'): continue
+    if not fn.endswith('.webp'): continue
     im = Image.open(os.path.join('public/sprites', fn)).convert('RGBA')
     data = list(im.getdata())
     opaque = sum(1 for p in data if p[3] > 10)

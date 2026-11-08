@@ -18,39 +18,39 @@ export interface SpriteViews {
 
 export const SPRITE_PATHS: Record<string, SpriteViews> = {
   miller: {
-    front: '/sprites/miller-front.png',
-    threequarter: '/sprites/miller-threequarter.png',
-    profile: '/sprites/miller-profile.png',
+    front: '/sprites/miller-front.webp',
+    threequarter: '/sprites/miller-threequarter.webp',
+    profile: '/sprites/miller-profile.webp',
   },
   moretti: {
-    front: '/sprites/moretti-front.png',
-    threequarter: '/sprites/moretti-threequarter.png',
-    profile: '/sprites/moretti-profile.png',
+    front: '/sprites/moretti-front.webp',
+    threequarter: '/sprites/moretti-threequarter.webp',
+    profile: '/sprites/moretti-profile.webp',
   },
   rosie: {
-    front: '/sprites/rosie-front.png',
-    threequarter: '/sprites/rosie-threequarter.png',
-    profile: '/sprites/rosie-profile.png',
+    front: '/sprites/rosie-front.webp',
+    threequarter: '/sprites/rosie-threequarter.webp',
+    profile: '/sprites/rosie-profile.webp',
   },
   crystal: {
-    front: '/sprites/crystal-front.png',
-    threequarter: '/sprites/crystal-threequarter.png',
-    profile: '/sprites/crystal-profile.png',
+    front: '/sprites/crystal-front.webp',
+    threequarter: '/sprites/crystal-threequarter.webp',
+    profile: '/sprites/crystal-profile.webp',
   },
   mark: {
-    front: '/sprites/mark-front.png',
-    threequarter: '/sprites/mark-threequarter.png',
-    profile: '/sprites/mark-profile.png',
+    front: '/sprites/mark-front.webp',
+    threequarter: '/sprites/mark-threequarter.webp',
+    profile: '/sprites/mark-profile.webp',
   },
   sterling: {
-    front: '/sprites/sterling-front.png',
-    threequarter: '/sprites/sterling-threequarter.png',
-    profile: '/sprites/sterling-profile.png',
+    front: '/sprites/sterling-front.webp',
+    threequarter: '/sprites/sterling-threequarter.webp',
+    profile: '/sprites/sterling-profile.webp',
   },
   victor: {
-    front: '/sprites/victor-front.png',
-    threequarter: '/sprites/victor-threequarter.png',
-    profile: '/sprites/victor-profile.png',
+    front: '/sprites/victor-front.webp',
+    threequarter: '/sprites/victor-threequarter.webp',
+    profile: '/sprites/victor-profile.webp',
   },
 }
 

@@ -191,6 +191,11 @@ export class Game {
       if (e.key.toLowerCase() === 'n') {
         this.notebook.toggle()
       }
+      // The case file header promises "arrows select"; wire them up.
+      if (this.notebook.isOpen && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        e.preventDefault()
+        this.notebook.moveSelection(e.key === 'ArrowUp' ? -1 : 1)
+      }
     })
     window.addEventListener('keyup', (e) => {
       this.input.keys.delete(e.key.toLowerCase())

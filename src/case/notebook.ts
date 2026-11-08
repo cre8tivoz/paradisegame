@@ -27,6 +27,8 @@ export class Notebook {
 
     this.panel = document.createElement('div')
     this.panel.className = 'notebook'
+    this.panel.setAttribute('role', 'dialog')
+    this.panel.setAttribute('aria-label', 'Case file')
     this.panel.setAttribute('aria-hidden', 'true')
 
     const header = document.createElement('header')
@@ -131,6 +133,15 @@ export class Notebook {
       item.tabIndex = 0
       item.addEventListener('click', () => {
         this.select(entry.id)
+      })
+      // Items are focusable, so let Enter pick them like a click and keep
+      // focus on the picked item after the list re-renders.
+      item.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault()
+          this.select(entry.id)
+          this.list.querySelector<HTMLElement>('.is-selected')?.focus()
+        }
       })
       this.list.appendChild(item)
     }

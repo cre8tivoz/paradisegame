@@ -11,7 +11,7 @@ import {
  *
  * Sources live in `images/assets/`. Codex generates them; this module loads the
  * resized runtime copies. Seamless tiles use `tiled()`. Document props use
- * `windowed()`. Neon letterforms are PNG with alpha.
+ * `windowed()`. Neon letterforms are WebP with alpha.
  */
 
 const loader = new TextureLoader()
@@ -106,13 +106,13 @@ export function tiled(name: TileTexture, repeatX: number, repeatY: number): Text
 }
 
 /**
- * Neon letterforms on transparent PNG.
+ * Neon letterforms on transparent WebP.
  *
  * `neon-sign` is the preferred static plate. `neon-sign-2` is the motion /
  * flicker alternate (same plate until a second frame is authored).
  */
 export function neonPlate(name: NeonTexture = 'neon-sign'): Texture {
-  const tex = load(`/textures/${name}.png`).clone()
+  const tex = load(`/textures/${name}.webp`).clone()
   tex.wrapS = ClampToEdgeWrapping
   tex.wrapT = ClampToEdgeWrapping
   tex.anisotropy = 4
